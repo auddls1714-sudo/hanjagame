@@ -1,0 +1,20 @@
+게임 배포
+git add .
+git commit -m "게임 기능 업데이트"
+git push
+
+
+기존 배포 파일 제거
+
+# 1. PC에 저장된 기존 로컬 Git 기록(.git 폴더)을 삭제합니다.
+rm -rf .git  # (Windows Command Prompt의 경우: rmdir /s /q .git)
+
+# 2. 로컬 Git을 처음부터 새로 만듭니다.
+git init
+git add .
+git commit -m "완전 초기 배포"
+git branch -M main
+
+# 3. 내 저장소 주소와 다시 연결하고, 강제(force)로 업로드하여 이전 기록을 다 지워버립니다.
+git remote add origin https://github.com/auddls1714-sudo/hanjagame.git
+git push -u origin main --force
