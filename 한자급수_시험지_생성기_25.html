@@ -4957,7 +4957,83 @@ function generateExam(settings) {
     if (t15) items.push({kind: 'single', q: t15});
   }
   
+  avoidThreeConsecutiveAnswers(items);
   return items;
+}
+
+function avoidThreeConsecutiveAnswers(items) {
+  const flatQuestions = [];
+  items.forEach(item => {
+    if (item.kind === 'single') {
+      flatQuestions.push({
+        qObj: item.q,
+        parentGroup: null,
+        getAnswer: () => item.q.answer,
+        setAnswer: (newIdx) => { item.q.answer = newIdx; },
+        getChoicesLength: () => item.q.choices ? item.q.choices.length : 4,
+        swapChoices: (idx1, idx2) => {
+          if (!item.q.choices) return;
+          const temp = item.q.choices[idx1];
+          item.q.choices[idx1] = item.q.choices[idx2];
+          item.q.choices[idx2] = temp;
+        }
+      });
+    } else if (item.kind === 'group' && item.q.questions) {
+      item.q.questions.forEach(subQ => {
+        flatQuestions.push({
+          qObj: subQ,
+          parentGroup: item.q,
+          getAnswer: () => subQ.answer,
+          setAnswer: (newIdx) => { subQ.answer = newIdx; },
+          getChoicesLength: () => item.q.bogi ? item.q.bogi.length : 4,
+          swapChoices: (idx1, idx2) => {
+            if (!item.q.bogi) return;
+            const temp = item.q.bogi[idx1];
+            item.q.bogi[idx1] = item.q.bogi[idx2];
+            item.q.bogi[idx2] = temp;
+            item.q.questions.forEach(q => {
+              if (q.answer === idx1) {
+                q.answer = idx2;
+              } else if (q.answer === idx2) {
+                q.answer = idx1;
+              }
+            });
+          }
+        });
+      });
+    }
+  });
+
+  const len = flatQuestions.length;
+  for (let i = 2; i < len; i++) {
+    const ans0 = flatQuestions[i-2].getAnswer();
+    const ans1 = flatQuestions[i-1].getAnswer();
+    const ans2 = flatQuestions[i].getAnswer();
+    
+    if (ans0 === ans1 && ans1 === ans2 && ans2 !== -1) {
+      const Y = ans2;
+      const N = flatQuestions[i].getChoicesLength();
+      let targetIdx = -1;
+      for (let cand = 0; cand < N; cand++) {
+        if (cand === Y) continue;
+        let wouldCauseConsecutive = false;
+        if (i + 2 < len) {
+          if (flatQuestions[i+1].getAnswer() === cand && flatQuestions[i+2].getAnswer() === cand) {
+            wouldCauseConsecutive = true;
+          }
+        }
+        if (!wouldCauseConsecutive) {
+          targetIdx = cand;
+          break;
+        }
+      }
+      if (targetIdx === -1) {
+        targetIdx = (Y + 1) % N;
+      }
+      flatQuestions[i].swapChoices(Y, targetIdx);
+      flatQuestions[i].setAnswer(targetIdx);
+    }
+  }
 }
 
 /* =================================================================
